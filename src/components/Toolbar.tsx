@@ -25,8 +25,11 @@ export default function Toolbar({
     <div className="flex items-center gap-2 px-4 py-2 bg-gray-900/95 backdrop-blur-xl border-b border-gray-700/50">
       <div className="flex items-center gap-2 mr-auto">
         <span className="text-2xl">⚛️</span>
-        <h1 className="text-white font-bold text-lg hidden sm:block">شبیه‌ساز اتم و پیوند شیمیایی</h1>
-        <h1 className="text-white font-bold text-sm sm:hidden">شبیه‌ساز شیمی</h1>
+        <div>
+          <h1 className="text-white font-bold text-lg hidden sm:block">شبیه‌ساز اتم و پیوند شیمیایی</h1>
+          <h1 className="text-white font-bold text-sm sm:hidden">شبیه‌ساز شیمی</h1>
+          <p className="text-[10px] text-gray-500 leading-none mt-0.5">ساخته‌شده توسط امیر شکری</p>
+        </div>
       </div>
 
       <div className="flex items-center gap-4 text-gray-400 text-xs ml-4">
