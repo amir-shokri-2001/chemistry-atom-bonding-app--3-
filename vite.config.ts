@@ -18,6 +18,13 @@ export default defineConfig({
     host: true,
     allowedHosts: true,
   },
+  build: {
+    // Build from the source template so the root index.html stays a
+    // self-contained production build that GitHub Pages can serve directly.
+    rollupOptions: {
+      input: path.resolve(__dirname, "index.template.html"),
+    },
+  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "src"),
