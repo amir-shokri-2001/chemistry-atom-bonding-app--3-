@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>آزمایشگاه پیوند اتمی | شبیه‌ساز شیمی</title>
+<link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #0b1020;
+    --panel: #111a30;
+    --panel-2: #0d1526;
+    --border: rgba(120,140,190,0.22);
+    --text: #e7ecf8;
+    --muted: #93a1bd;
+    --accent: #4f8cff;
+    --emerald: #2fd2a0;
+    --amber: #f5b23d;
+    --red: #ef5b5b;
+    --blue: #5aa0ff;
+    --radius: 14px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body, #app { width: 100%; height: 100%; overflow: hidden; }
+
+  body {
+    font-family: 'Vazirmatn', 'Segoe UI', Tahoma, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    direction: rtl;
+    background-image:
+      radial-gradient(circle at 15% 20%, rgba(79,140,255,0.08), transparent 40%),
+      radial-gradient(circle at 85% 80%, rgba(47,210,160,0.07), transparent 40%);
+  }
+
+  #app { display: flex; flex-direction: column; }
+
+  /* ---------- Top bar ---------- */
+  .topbar {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 16px;
+    background: rgba(15,22,44,0.92);
+    border-bottom: 1px solid var(--border);
+    backdrop-filter: blur(10px);
+    z-index: 40;
+    flex-wrap: wrap;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; margin-inline-end: auto; }
+  .brand .logo { font-size: 26px; }
+  .brand h1 { font-size: 17px; font-weight: 800; }
+  .brand small { display: block; color: var(--muted); font-size: 10px; font-weight: 400; }
+
+  .stat { color: var(--muted); font-size: 12px; padding: 5px 10px; background: rgba(255,255,255,0.04); border-radius: 999px; border: 1px solid var(--border); }
+  .stat b { color: var(--text); font-weight: 700; }
+
+  .btn {
+    font-family: inherit; cursor: pointer; user-select: none;
+    border: 1px solid var(--border); border-radius: 10px;
+    background: rgba(255,255,255,0.04); color: var(--text);
+    padding: 7px 12px; font-size: 12px; font-weight: 600;
+    transition: transform .12s ease, background .15s ease, box-shadow .15s ease;
+  }
+  .btn:hover { background: rgba(255,255,255,0.09); transform: translateY(-1px); }
+  .btn:active { transform: translateY(0); }
+  .btn:disabled { opacity: .35; cursor: not-allowed; transform: none; }
+  .btn.active { background: var(--accent); border-color: transparent; box-shadow: 0 4px 18px rgba(79,140,255,0.35); }
+  .btn.amber.active { background: #c78a1e; box-shadow: 0 4px 18px rgba(245,178,61,0.3); }
+  .btn.danger { background: rgba(239,91,91,0.16); border-color: rgba(239,91,91,0.35); color: #ffb4b4; }
+  .btn.danger:hover { background: rgba(239,91,91,0.28); }
+
+  /* ---------- Layout ---------- */
+  .body { flex: 1; display: flex; min-height: 0; position: relative; }
+
+  .canvas-wrap { flex: 1; position: relative; min-width: 0; }
+  #canvas { width: 100%; height: 100%; display: block; cursor: crosshair;
+    background-image: radial-gradient(circle, rgba(120,140,200,0.07) 1px, transparent 1.4px);
+    background-size: 26px 26px;
+    touch-action: none; }
+
+  /* ---------- Sidebar / palette ---------- */
+  .sidebar {
+    width: 260px; min-width: 260px; height: 100%;
+    background: rgba(13,20,40,0.96);
+    border-inline-start: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    transition: width .28s ease, min-width .28s ease;
+    overflow: hidden;
+  }
+  .sidebar.closed { width: 0; min-width: 0; border: none; }
+  .palette-head { padding: 14px 14px 10px; border-bottom: 1px solid var(--border); }
+  .palette-head h2 { font-size: 15px; font-weight: 800; display: flex; align-items: center; gap: 8px; }
+  .palette-head h2 span { font-size: 20px; }
+  .search {
+    width: 100%; margin-top: 10px; padding: 8px 12px;
+    border-radius: 10px; border: 1px solid var(--border);
+    background: rgba(255,255,255,0.05); color: var(--text); font-family: inherit;
+    font-size: 12px; outline: none;
+  }
+  .search:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(79,140,255,0.2); }
+  .cats { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 14px; border-bottom: 1px solid var(--border); }
+  .cat {
+    font-family: inherit; font-size: 11px; font-weight: 600; cursor: pointer;
+    padding: 4px 9px; border-radius: 8px; border: 1px solid var(--border);
+    background: rgba(255,255,255,0.04); color: var(--muted); transition: all .15s;
+  }
+  .cat:hover { color: var(--text); }
+  .cat.on { background: var(--accent); color: #fff; border-color: transparent; }
+  .atom-list { flex: 1; overflow-y: auto; padding: 12px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; align-content: start; }
+  .atom-card {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 2px; padding: 8px 4px; border-radius: 12px; cursor: grab;
+    border: 1px solid rgba(255,255,255,0.06); color: #fff;
+    text-align: center; transition: transform .15s ease, box-shadow .15s ease, filter .15s ease;
+    user-select: none; -webkit-user-select: none;
+  }
+  .atom-card:active { cursor: grabbing; }
+  .atom-card:hover { transform: translateY(-3px) scale(1.04); box-shadow: 0 8px 22px rgba(0,0,0,0.4); filter: brightness(1.08); }
+  .atom-card .z { position: absolute; top: 5px; inset-inline-start: 8px; font-size: 9px; color: rgba(255,255,255,0.75); font-family: monospace; }
+  .atom-card .sym { font-size: 21px; font-weight: 800; line-height: 1; }
+  .atom-card .nm { font-size: 10px; color: rgba(255,255,255,0.9); }
+  .atom-card .ct { font-size: 8px; color: rgba(255,255,255,0.6); }
+
+  .toggle-open {
+    position: absolute; top: 12px; inset-inline-start: 12px; z-index: 50;
+    background: var(--panel); border: 1px solid var(--border); color: var(--text);
+    border-radius: 10px; padding: 8px 12px; cursor: pointer; font-size: 14px;
+  }
+  .toggle-close {
+    position: absolute; top: 12px; inset-inline-end: 12px; z-index: 50;
+    background: transparent; border: none; color: var(--muted); cursor: pointer;
+    font-size: 16px; line-height: 1; padding: 4px;
+  }
+  .toggle-close:hover { color: #fff; }
+
+  /* ---------- Overlays ---------- */
+  .overlay {
+    position: absolute; background: var(--panel);
+    border: 1px solid var(--border); border-radius: var(--radius);
+    box-shadow: 0 14px 40px rgba(0,0,0,0.5); z-index: 30;
+    backdrop-filter: blur(12px);
+    animation: pop .25s cubic-bezier(.2,.9,.3,1.2);
+  }
+  @keyframes pop { from { transform: scale(.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+  .welcome {
+    inset: 0; display: flex; align-items: center; justify-content: center;
+    background: transparent; border: none; box-shadow: none; pointer-events: none;
+  }
+  .welcome .card {
+    pointer-events: auto; background: rgba(15,22,44,0.85); border: 1px solid var(--border);
+    border-radius: 22px; padding: 28px 34px; max-width: 520px; text-align: center;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5); backdrop-filter: blur(14px);
+  }
+  .welcome h2 { font-size: 21px; font-weight: 800; margin: 10px 0 12px; }
+  .welcome .emoji { font-size: 48px; }
+  .welcome p { color: var(--muted); font-size: 13px; margin: 6px 0; }
+  .welcome .tips {
+    margin-top: 14px; padding: 12px; border-radius: 14px;
+    background: rgba(255,255,255,0.04); border: 1px solid var(--border); text-align: start; font-size: 12px;
+  }
+  .welcome .tips div { margin: 6px 0; color: var(--text); }
+  .welcome .tips b.cov { color: var(--emerald); }
+  .welcome .tips b.ion { color: var(--amber); }
+
+  /* bond notification */
+  .notif { top: 14px; left: 50%; transform: translateX(-50%); z-index: 60; }
+  .notif .inner { display: flex; align-items: center; gap: 14px; padding: 14px 18px; border-radius: 16px; }
+  .notif .inner.covalent { background: rgba(10,64,44,0.92); border: 1px solid rgba(47,210,160,0.5); }
+  .notif .inner.ionic { background: rgba(74,52,8,0.92); border: 1px solid rgba(245,178,61,0.5); }
+  .notif .inner.none { background: rgba(70,16,16,0.92); border: 1px solid rgba(239,91,91,0.5); }
+  .notif .big { font-size: 26px; }
+  .notif h3 { font-size: 16px; font-weight: 800; }
+  .notif p { font-size: 12px; color: rgba(255,255,255,0.8); margin-top: 2px; }
+  .notif .msg { font-size: 12px; margin-top: 5px; font-weight: 600; }
+  .notif .inner.covalent .msg { color: #8df0cd; }
+  .notif .inner.ionic .msg { color: #ffd98a; }
+  .notif .inner.none .msg { color: #ffb4b4; }
+  .notif .close { background: transparent; border: none; color: rgba(255,255,255,0.6); font-size: 18px; cursor: pointer; }
+  .notif .close:hover { color: #fff; }
+
+  /* selection info */
+  .info { bottom: 16px; inset-inline-start: 16px; padding: 16px; min-width: 250px; }
+  .info .head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+  .info .atom-badge { width: 46px; height: 46px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 18px; color: #fff; box-shadow: 0 6px 16px rgba(0,0,0,0.3); }
+  .info .head h3 { font-size: 16px; font-weight: 800; }
+  .info .head p { font-size: 11px; color: var(--muted); }
+  .info .row { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); padding: 3px 0; }
+  .info .row b { color: var(--text); font-family: monospace; }
+  .info .row .warn { color: var(--amber); }
+  .info .foot { margin-top: 10px; }
+  .info .actions { display: flex; gap: 8px; margin-top: 12px; }
+  .info .actions .btn { flex: 1; }
+  .info .hint { text-align: center; font-size: 10px; color: var(--muted); margin-top: 10px; }
+
+  .legend { bottom: 16px; inset-inline-end: 16px; padding: 12px 14px; font-size: 12px; }
+  .legend div { display: flex; align-items: center; gap: 8px; margin: 4px 0; color: var(--muted); }
+  .legend .sw { width: 26px; height: 5px; border-radius: 999px; }
+
+  .drag-ghost {
+    position: fixed; z-index: 9999; pointer-events: none; width: 46px; height: 46px;
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    color: #fff; font-weight: 800; font-size: 18px; opacity: .85;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  }
+
+  /* electron orbit animation */
+  .orbit { animation: spin 3.2s linear infinite; }
+  .orbit-rev { animation: spin 4.2s linear infinite reverse; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .bond-pulse { animation: bp 1.6s ease-in-out infinite; }
+  @keyframes bp { 0%,100%{opacity:.55;} 50%{opacity:1;} }
+
+  .electron-glow { animation: eg 1.8s ease-in-out infinite; }
+  @keyframes eg { 0%,100%{ filter: brightness(1); } 50%{ filter: brightness(1.5) drop-shadow(0 0 6px #5aa0ff); } }
+
+  ::-webkit-scrollbar { width: 8px; }
+  ::-webkit-scrollbar-thumb { background: rgba(120,140,190,0.3); border-radius: 4px; }
+
+  .toast-tip { position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); background: rgba(15,22,44,0.9); border: 1px solid var(--border); padding: 8px 16px; border-radius: 999px; font-size: 12px; color: var(--muted); z-index: 20; }
+</style>
+</head>
+<body>
+<div id="app">
+  <header class="topbar" id="topbar"></header>
+  <div class="body">
+    <button class="toggle-open" id="btnOpenSidebar" style="display:none;">🧪 عناصر</button>
+    <div class="canvas-wrap">
+      <svg id="canvas" viewBox="0 0 100 100" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="covGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#2fd2a0"/><stop offset="50%" stop-color="#5aa0ff"/><stop offset="100%" stop-color="#2fd2a0"/>
+          </linearGradient>
+          <linearGradient id="ionGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#ef5b5b"/><stop offset="50%" stop-color="#f5b23d"/><stop offset="100%" stop-color="#4f8cff"/>
+          </linearGradient>
+        </defs>
+        <g id="layer-bonds"></g>
+        <g id="layer-atoms"></g>
+      </svg>
+
+      <div class="welcome overlay" id="welcome"></div>
+      <div class="overlay notif" id="notif" style="display:none;"></div>
+      <div class="overlay info" id="infoPanel" style="display:none;"></div>
+      <div class="overlay legend" id="legend"></div>
+      <div class="toast-tip" id="toast" style="display:none;"></div>
+    </div>
+
+    <aside class="sidebar" id="sidebar">
+      <div class="palette-head">
+        <h2><span>⚛️</span>جدول عناصر</h2>
+        <input class="search" id="search" type="text" placeholder="🔍 جستجوی عنصر...">
+      </div>
+      <div class="cats" id="cats"></div>
+      <div class="atom-list" id="atomList"></div>
+      <button class="toggle-close" id="btnCloseSidebar">✕</button>
+    </aside>
+  </div>
+</div>
+
+<div class="drag-ghost" id="dragGhost" style="display:none;"></div>
+
+<script>
+'use strict';
+
+/* ================= Atom database ================= */
+const ATOMS = [
+  { symbol:'H',  name:'Hydrogen',    nameFa:'هیدروژن',   atomicNumber:1,  electronConfig:[1],         valenceElectrons:1, electronegativity:2.20, color:'#FFFFFF', radius:30, category:'nonmetal',  maxBonds:1 },
+  { symbol:'He', name:'Helium',      nameFa:'هلیوم',     atomicNumber:2,  electronConfig:[2],         valenceElectrons:2, electronegativity:0.00, color:'#D9FFFF', radius:28, category:'noble-gas', maxBonds:0 },
+  { symbol:'Li', name:'Lithium',     nameFa:'لیتیم',     atomicNumber:3,  electronConfig:[2,1],       valenceElectrons:1, electronegativity:0.98, color:'#CC80FF', radius:38, category:'metal',     maxBonds:1 },
+  { symbol:'Be', name:'Beryllium',   nameFa:'بریلیم',    atomicNumber:4,  electronConfig:[2,2],       valenceElectrons:2, electronegativity:1.57, color:'#C2FF00', radius:34, category:'metal',     maxBonds:2 },
+  { symbol:'B',  name:'Boron',       nameFa:'بور',       atomicNumber:5,  electronConfig:[2,3],       valenceElectrons:3, electronegativity:2.04, color:'#FFB5B5', radius:32, category:'metalloid', maxBonds:3 },
+  { symbol:'C',  name:'Carbon',      nameFa:'کربن',      atomicNumber:6,  electronConfig:[2,4],       valenceElectrons:4, electronegativity:2.55, color:'#909090', radius:34, category:'nonmetal',  maxBonds:4 },
+  { symbol:'N',  name:'Nitrogen',    nameFa:'نیتروژن',   atomicNumber:7,  electronConfig:[2,5],       valenceElectrons:5, electronegativity:3.04, color:'#3050F8', radius:32, category:'nonmetal',  maxBonds:3 },
+  { symbol:'O',  name:'Oxygen',      nameFa:'اکسیژن',    atomicNumber:8,  electronConfig:[2,6],       valenceElectrons:6, electronegativity:3.44, color:'#FF0D0D', radius:30, category:'nonmetal',  maxBonds:2 },
+  { symbol:'F',  name:'Fluorine',    nameFa:'فلوئور',    atomicNumber:9,  electronConfig:[2,7],       valenceElectrons:7, electronegativity:3.98, color:'#90E050', radius:28, category:'halogen',   maxBonds:1 },
+  { symbol:'Ne', name:'Neon',        nameFa:'نئون',      atomicNumber:10, electronConfig:[2,8],       valenceElectrons:8, electronegativity:0.00, color:'#B3E3F5', radius:30, category:'noble-gas', maxBonds:0 },
+  { symbol:'Na', name:'Sodium',      nameFa:'سدیم',      atomicNumber:11, electronConfig:[2,8,1],     valenceElectrons:1, electronegativity:0.93, color:'#AB5CF2', radius:40, category:'metal',     maxBonds:1 },
+  { symbol:'Mg', name:'Magnesium',   nameFa:'منیزیم',    atomicNumber:12, electronConfig:[2,8,2],     valenceElectrons:2, electronegativity:1.31, color:'#8AFF00', radius:38, category:'metal',     maxBonds:2 },
+  { symbol:'Al', name:'Aluminum',    nameFa:'آلومینیم',  atomicNumber:13, electronConfig:[2,8,3],     valenceElectrons:3, electronegativity:1.61, color:'#BFA6A6', radius:36, category:'metal',     maxBonds:3 },
+  { symbol:'Si', name:'Silicon',     nameFa:'سیلیکون',   atomicNumber:14, electronConfig:[2,8,4],     valenceElectrons:4, electronegativity:1.90, color:'#F0C8A0', radius:34, category:'metalloid', maxBonds:4 },
+  { symbol:'P',  name:'Phosphorus',  nameFa:'فسفر',      atomicNumber:15, electronConfig:[2,8,5],     valenceElectrons:5, electronegativity:2.19, color:'#FF8000', radius:32, category:'nonmetal',  maxBonds:3 },
+  { symbol:'S',  name:'Sulfur',      nameFa:'گوگرد',     atomicNumber:16, electronConfig:[2,8,6],     valenceElectrons:6, electronegativity:2.58, color:'#FFFF30', radius:32, category:'nonmetal',  maxBonds:2 },
+  { symbol:'Cl', name:'Chlorine',    nameFa:'کلر',       atomicNumber:17, electronConfig:[2,8,7],     valenceElectrons:7, electronegativity:3.16, color:'#1FF01F', radius:30, category:'halogen',   maxBonds:1 },
+  { symbol:'Ar', name:'Argon',       nameFa:'آرگون',     atomicNumber:18, electronConfig:[2,8,8],     valenceElectrons:8, electronegativity:0.00, color:'#80D1E3', radius:34, category:'noble-gas', maxBonds:0 },
+  { symbol:'K',  name:'Potassium',   nameFa:'پتاسیم',    atomicNumber:19, electronConfig:[2,8,8,1],   valenceElectrons:1, electronegativity:0.82, color:'#8F40D4', radius:44, category:'metal',     maxBonds:1 },
+  { symbol:'Ca', name:'Calcium',     nameFa:'کلسیم',     atomicNumber:20, electronConfig:[2,8,8,2],   valenceElectrons:2, electronegativity:1.00, color:'#3DFF00', radius:42, category:'metal',     maxBonds:2 },
+];
+
+const CATS = [
+  { key:'all',       label:'همه' },
+  { key:'metal',     label:'فلزات' },
+  { key:'nonmetal',  label:'نافلزات' },
+  { key:'metalloid', label:'شبه‌فلزات' },
+  { key:'halogen',   label:'هالوژن‌ها' },
+  { key:'noble-gas', label:'گازهای نجیب' },
+];
+
+const CAT_COLOR = {
+  metal:'linear-gradient(135deg,#7c3aed,#4f8cff)',
+  nonmetal:'linear-gradient(135deg,#16a34a,#0d9488)',
+  metalloid:'linear-gradient(135deg,#d97706,#ea580c)',
+  'noble-gas':'linear-gradient(135deg,#06b6d4,#2563eb)',
+  halogen:'linear-gradient(135deg,#65a30d,#16a34a)',
+};
+const CAT_NAME = { metal:'فلز', nonmetal:'نافلز', metalloid:'شبه‌فلز', 'noble-gas':'گاز نجیب', halogen:'هالوژن' };
+
+/* ================= Helpers ================= */
+let _idc = 0;
+const genId = () => 'atom-' + (++_idc);
+
+function getBondType(a1, a2) {
+  if (a1.category === 'noble-gas' || a2.category === 'noble-gas') return 'none';
+  const d = Math.abs(a1.electronegativity - a2.electronegativity);
+  return d >= 1.7 ? 'ionic' : 'covalent';
+}
+
+function removeOuterElectron(config) {
+  const c = config.slice();
+  for (let i = c.length - 1; i >= 0; i--) {
+    if (c[i] > 0) {
+      c[i]--;
+      if (c[i] === 0 && i > 0) c.splice(i, 1);
+      break;
+    }
+  }
+  return c;
+}
+function addOuterElectron(config) {
+  const c = config.slice();
+  const last = c.length - 1;
+  const max = last === 0 ? 2 : 8;
+  if (c[last] < max) c[last]++;
+  else c.push(1);
+  return c;
+}
+const totalE = c => c.reduce((s, x) => s + x, 0);
+
+/* ================= State ================= */
+const S = {
+  placedAtoms: [],
+  bonds: [],
+  selectedAtomId: null,
+  showElectrons: true,
+  freezeElectrons: false,
+  search: '',
+  category: 'all',
+  sidebarOpen: true,
+  history: [],
+  notif: null,
+};
+
+/* ================= DOM refs ================= */
+const $ = id => document.getElementById(id);
+const canvas = $('canvas');
+const layerBonds = $('layer-bonds');
+const layerAtoms = $('layer-atoms');
+const atomGroupMap = {}; // id -> <g>
+
+function resizeViewBox() {
+  const r = canvas.getBoundingClientRect();
+  canvas.setAttribute('viewBox', `0 0 ${r.width} ${r.height}`);
+}
+window.addEventListener('resize', () => { resizeViewBox(); renderAll(); });
+
+function getSvgPoint(clientX, clientY) {
+  const r = canvas.getBoundingClientRect();
+  const vb = canvas.viewBox.baseVal;
+  const sx = vb.width / r.width, sy = vb.height / r.height;
+  return { x: (clientX - r.left) * sx, y: (clientY - r.top) * sy };
+}
+
+/* ================= History ================= */
+function saveHistory() {
+  S.history.push({
+    atoms: S.placedAtoms.map(a => ({ ...a, atom: a.atom, displayElectronConfig: a.displayElectronConfig.slice() })),
+    bonds: S.bonds.slice(),
+  });
+  if (S.history.length > 20) S.history.shift();
+  renderTopbar();
+}
+function undo() {
+  if (!S.history.length) return;
+  const last = S.history.pop();
+  S.placedAtoms = last.atoms;
+  S.bonds = last.bonds;
+  S.selectedAtomId = null;
+  renderAll();
+}
+
+/* ================= Bond creation ================= */
+function showNotif(n) {
+  if (S.notifTimer) clearTimeout(S.notifTimer);
+  S.notif = n;
+  renderNotif();
+  S.notifTimer = setTimeout(() => { S.notif = null; renderNotif(); }, 5000);
+}
+
+function tryCreateBond(pa1, pa2) {
+  const a1 = pa1, a2 = pa2;
+  const type = getBondType(a1.atom, a2.atom);
+  const enDiff = Math.abs(a1.atom.electronegativity - a2.atom.electronegativity);
+
+  if (type === 'none') {
+    showNotif({ kind:'none', a1:a1.atom, a2:a2.atom, enDiff, msg:'گازهای نجیب پیوند تشکیل نمی‌دهند' });
+    return;
+  }
+  if (a1.currentBonds >= a1.atom.maxBonds || a2.currentBonds >= a2.atom.maxBonds) {
+    showNotif({ kind:'none', a1:a1.atom, a2:a2.atom, enDiff,
+      msg:`ظرفیت پر شده (${a1.atom.symbol}: ${a1.currentBonds}/${a1.atom.maxBonds}، ${a2.atom.symbol}: ${a2.currentBonds}/${a2.atom.maxBonds})` });
+    return;
+  }
+
+  const o1 = a1.displayElectronConfig[a1.displayElectronConfig.length - 1];
+  const o2 = a2.displayElectronConfig[a2.displayElectronConfig.length - 1];
+  const bondId = `bond-${a1.id}-${a2.id}`;
+
+  if (type === 'covalent') {
+    if (o1 < 1 || o2 < 1) {
+      showNotif({ kind:'none', a1:a1.atom, a2:a2.atom, enDiff, msg:'الکترون ظرفیتی برای اشتراک کافی نیست' });
+      return;
+    }
+    S.bonds.push({ id:bondId, atom1Id:a1.id, atom2Id:a2.id, type:'covalent', sharedElectrons:2 });
+    updAtom(a1.id, a => { a.currentBonds++; a.displayElectronConfig = removeOuterElectron(a.displayElectronConfig); });
+    updAtom(a2.id, a => { a.currentBonds++; a.displayElectronConfig = removeOuterElectron(a.displayElectronConfig); });
+    showNotif({ kind:'covalent', a1:a1.atom, a2:a2.atom, enDiff, msg:'هر اتم ۱ الکترون به اشتراک می‌گذارد ← ۲ الکترون مشترک روی پیوند' });
+  } else {
+    const metal = a1.atom.electronegativity < a2.atom.electronegativity ? a1 : a2;
+    const nonmetal = a1.atom.electronegativity < a2.atom.electronegativity ? a2 : a1;
+    const me = metal.displayElectronConfig[metal.displayElectronConfig.length - 1];
+    if (me < 1) {
+      showNotif({ kind:'none', a1:a1.atom, a2:a2.atom, enDiff, msg:`${metal.atom.nameFa} الکترون ظرفیتی برای انتقال ندارد` });
+      return;
+    }
+    S.bonds.push({ id:bondId, atom1Id:a1.id, atom2Id:a2.id, type:'ionic', sharedElectrons:0 });
+    updAtom(metal.id, a => { a.currentBonds++; a.charge++; a.displayElectronConfig = removeOuterElectron(a.displayElectronConfig); });
+    updAtom(nonmetal.id, a => { a.currentBonds++; a.charge--; a.displayElectronConfig = addOuterElectron(a.displayElectronConfig); });
+    showNotif({ kind:'ionic', a1:a1.atom, a2:a2.atom, enDiff, msg:`الکترون از ${metal.atom.nameFa} به ${nonmetal.atom.nameFa} منتقل شد` });
+  }
+
+  // snap atoms to proper distance
+  const dx = a2.x - a1.x, dy = a2.y - a1.y;
+  const dist = Math.sqrt(dx*dx + dy*dy);
+  const target = type === 'ionic' ? a1.atom.radius + a2.atom.radius + 30 : a1.atom.radius + a2.atom.radius + 10;
+  if (dist > 0 && Math.abs(dist - target) > 0.5) {
+    const scale = target / dist;
+    const mx = (a1.x + a2.x) / 2, my = (a1.y + a2.y) / 2;
+    updAtom(a1.id, a => { a.x = mx - (dx*scale)/2; a.y = my - (dy*scale)/2; });
+    updAtom(a2.id, a => { a.x = mx + (dx*scale)/2; a.y = my + (dy*scale)/2; });
+  }
+  renderCanvas();
+}
+
+function updAtom(id, fn) {
+  S.placedAtoms = S.placedAtoms.map(a => (a.id === id ? fn({ ...a }) : a));
+}
+
+/* ================= Delete atom ================= */
+function deleteAtom(id) {
+  if (!id) return;
+  saveHistory();
+  const connected = S.bonds.filter(b => b.atom1Id === id || b.atom2Id === id);
+  let atoms = S.placedAtoms.filter(a => a.id !== id);
+  const prev = S.placedAtoms;
+  for (const bond of connected) {
+    const partnerId = bond.atom1Id === id ? bond.atom2Id : bond.atom1Id;
+    atoms = atoms.map(a => {
+      if (a.id !== partnerId) return a;
+      let cfg = a.displayElectronConfig.slice();
+      let ch = a.charge;
+      if (bond.type === 'covalent') {
+        cfg = addOuterElectron(cfg);
+      } else {
+        const pa = prev.find(p => p.id === partnerId);
+        const da = prev.find(p => p.id === id);
+        if (pa && da) {
+          if (pa.atom.electronegativity > da.atom.electronegativity) { cfg = removeOuterElectron(cfg); ch += 1; }
+          else { cfg = addOuterElectron(cfg); ch -= 1; }
+        }
+      }
+      return { ...a, currentBonds: Math.max(0, a.currentBonds - 1), displayElectronConfig: cfg, charge: ch };
+    });
+  }
+  S.placedAtoms = atoms;
+  S.bonds = S.bonds.filter(b => b.atom1Id !== id && b.atom2Id !== id);
+  S.selectedAtomId = null;
+  renderAll();
+}
+
+function clearAll() {
+  if (!S.placedAtoms.length && !S.bonds.length) return;
+  saveHistory();
+  S.placedAtoms = [];
+  S.bonds = [];
+  S.selectedAtomId = null;
+  renderAll();
+}
+
+/* ================= Selection bonding ================= */
+function handleAtomClick(id) {
+  if (S.draggingCanvasId) return;
+  if (S.selectedAtomId === null) {
+    S.selectedAtomId = id;
+  } else if (S.selectedAtomId === id) {
+    S.selectedAtomId = null;
+  } else {
+    const a1 = S.placedAtoms.find(a => a.id === S.selectedAtomId);
+    const a2 = S.placedAtoms.find(a => a.id === id);
+    if (a1 && a2) {
+      const exists = S.bonds.some(b =>
+        (b.atom1Id === a1.id && b.atom2Id === a2.id) || (b.atom1Id === a2.id && b.atom2Id === a1.id));
+      if (!exists) { saveHistory(); tryCreateBond(a1, a2); }
+    }
+    S.selectedAtomId = null;
+  }
+  renderAll();
+}
+
+/* ================= Canvas atom drag (position) ================= */
+let dragState = null; // {id, offsetX, offsetY}
+
+function canvasAtomDown(id, e) {
+  e.stopPropagation();
+  if (e.cancelable) e.preventDefault();
+  const pa = S.placedAtoms.find(a => a.id === id);
+  if (!pa) return;
+  const cx = (e.touches && e.touches[0]) ? e.touches[0].clientX : e.clientX;
+  const cy = (e.touches && e.touches[0]) ? e.touches[0].clientY : e.clientY;
+  const p = getSvgPoint(cx, cy);
+  dragState = { id, offsetX: p.x - pa.x, offsetY: p.y - pa.y };
+  S.draggingCanvasId = id;
+}
+function canvasAtomUp() {
+  if (!dragState) return;
+  const id = dragState.id;
+  dragState = null;
+  S.draggingCanvasId = null;
+  // If the atom was actually dragged, suppress the following click event.
+  S.suppressNextClick = S.draggedDistance;
+  S.draggedDistance = false;
+  // auto-bond with nearby atoms
+  const dragged = S.placedAtoms.find(a => a.id === id);
+  if (!dragged) return;
+  for (const other of S.placedAtoms) {
+    if (other.id === id) continue;
+    const dx = dragged.x - other.x, dy = dragged.y - other.y;
+    const dist = Math.sqrt(dx*dx+dy*dy);
+    if (dist < dragged.atom.radius + other.atom.radius + 20) {
+      const exists = S.bonds.some(b =>
+        (b.atom1Id === id && b.atom2Id === other.id) || (b.atom1Id === other.id && b.atom2Id === id));
+      if (!exists) tryCreateBond(dragged, other);
+    }
+  }
+  renderCanvas();
+}
+
+window.addEventListener('mousemove', e => {
+  if (dragState) {
+    const p = getSvgPoint(e.clientX, e.clientY);
+    const g = atomGroupMap[dragState.id];
+    const pa = S.placedAtoms.find(a => a.id === dragState.id);
+    if (g && pa) {
+      pa.x = p.x - dragState.offsetX;
+      pa.y = p.y - dragState.offsetY;
+      S.draggedDistance = true;
+      g.setAttribute('transform', `translate(${pa.x}, ${pa.y})`);
+      renderBonds();
+      renderInfo();
+    }
+  }
+});
+window.addEventListener('mouseup', () => { if (dragState) canvasAtomUp(); });
+
+canvas.addEventListener('click', e => {
+  if (e.target === canvas || e.target === layerBonds || e.target === layerAtoms) {
+    S.selectedAtomId = null; renderInfo(); renderTopbar();
+  }
+});
+
+/* ================= Palette drag (mouse) ================= */
+let dragAtom = null;
+function paletteDragStart(atom, e) {
+  dragAtom = atom;
+  e.dataTransfer.setData('text/plain', atom.symbol);
+  e.dataTransfer.effectAllowed = 'copy';
+}
+canvas.addEventListener('dragover', e => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; });
+canvas.addEventListener('drop', e => {
+  e.preventDefault();
+  if (!dragAtom) return;
+  const p = getSvgPoint(e.clientX, e.clientY);
+  placeAtom(dragAtom, p.x, p.y);
+  dragAtom = null;
+});
+
+/* ================= Palette drag (touch) ================= */
+let touchDrag = null; // {atom, x, y}
+function paletteTouchStart(atom, e) {
+  const t = e.touches[0];
+  touchDrag = { atom, x: t.clientX, y: t.clientY };
+  const g = $('dragGhost');
+  g.style.display = 'flex';
+  g.style.background = atom.color;
+  g.textContent = atom.symbol;
+  g.style.left = (t.clientX - 23) + 'px';
+  g.style.top = (t.clientY - 23) + 'px';
+}
+window.addEventListener('touchmove', e => {
+  if (touchDrag) {
+    const t = e.touches[0];
+    touchDrag.x = t.clientX; touchDrag.y = t.clientY;
+    const g = $('dragGhost');
+    g.style.left = (t.clientX - 23) + 'px';
+    g.style.top = (t.clientY - 23) + 'px';
+    e.preventDefault();
+  } else if (dragState) {
+    const t = e.touches[0];
+    const p = getSvgPoint(t.clientX, t.clientY);
+    const g = atomGroupMap[dragState.id];
+    const pa = S.placedAtoms.find(a => a.id === dragState.id);
+    if (g && pa) { pa.x = p.x - dragState.offsetX; pa.y = p.y - dragState.offsetY; S.draggedDistance = true; g.setAttribute('transform', `translate(${pa.x}, ${pa.y})`); renderBonds(); }
+    e.preventDefault();
+  }
+}, { passive:false });
+window.addEventListener('touchend', e => {
+  if (touchDrag) {
+    const r = canvas.getBoundingClientRect();
+    const inside = touchDrag.x >= r.left && touchDrag.x <= r.right && touchDrag.y >= r.top && touchDrag.y <= r.bottom;
+    if (inside) {
+      const p = getSvgPoint(touchDrag.x, touchDrag.y);
+      placeAtom(touchDrag.atom, p.x, p.y);
+    }
+    touchDrag = null;
+    $('dragGhost').style.display = 'none';
+  }
+  if (dragState) canvasAtomUp();
+});
+
+function placeAtom(atom, x, y) {
+  saveHistory();
+  S.placedAtoms.push({
+    id: genId(), atom, x, y, charge: 0, currentBonds: 0,
+    displayElectronConfig: atom.electronConfig.slice(),
+  });
+  renderAll();
+}
+
+/* ================= Rendering ================= */
+function renderAll() {
+  resizeViewBox();
+  renderTopbar();
+  renderPalette();
+  renderCanvas();
+  renderNotif();
+  renderInfo();
+  renderWelcome();
+  renderSidebar();
+}
+
+function renderTopbar() {
+  const tb = $('topbar');
+  tb.innerHTML = `
+    <div class="brand">
+      <span class="logo">⚛️</span>
+      <div>
+        <h1>آزمایشگاه پیوند اتمی</h1>
+        <small>شبیه‌ساز شیمی | نسخهٔ مستقل</small>
+      </div>
+    </div>
+    <span class="stat">🔵 اتم‌ها: <b>${S.placedAtoms.length}</b></span>
+    <span class="stat">🔗 پیوندها: <b>${S.bonds.length}</b></span>
+    <button class="btn ${S.showElectrons ? 'active' : ''}" id="btnElec">${S.showElectrons ? '👁 الکترون‌ها' : '👁‍🗨 الکترون‌ها'}</button>
+    <button class="btn amber ${S.freezeElectrons ? 'active' : ''}" id="btnFreeze" ${!S.showElectrons ? 'disabled' : ''}>${S.freezeElectrons ? '⏸ توقف' : '▶️ حرکت'}</button>
+    <button class="btn" id="btnUndo" ${S.history.length ? '' : 'disabled'}>↩️ بازگشت</button>
+    <button class="btn danger" id="btnClear">🗑 پاک کردن</button>`;
+  $('btnElec').onclick = () => { S.showElectrons = !S.showElectrons; renderTopbar(); renderCanvas(); };
+  $('btnFreeze').onclick = () => { S.freezeElectrons = !S.freezeElectrons; renderTopbar(); renderCanvas(); };
+  $('btnUndo').onclick = () => undo();
+  $('btnClear').onclick = () => clearAll();
+}
+
+function renderSidebar() {
+  $('sidebar').classList.toggle('closed', !S.sidebarOpen);
+  $('btnOpenSidebar').style.display = S.sidebarOpen ? 'none' : 'block';
+}
+
+function renderPalette() {
+  $('cats').innerHTML = CATS.map(c =>
+    `<button class="cat ${S.category === c.key ? 'on' : ''}" data-cat="${c.key}">${c.label}</button>`).join('');
+  $('cats').querySelectorAll('.cat').forEach(b => {
+    b.onclick = () => { S.category = b.dataset.cat; renderPalette(); };
+  });
+
+  const q = S.search.trim().toLowerCase();
+  const list = ATOMS.filter(a =>
+    (S.category === 'all' || a.category === S.category) &&
+    (!q || a.symbol.toLowerCase().includes(q) || a.nameFa.includes(S.search.trim()) || a.name.toLowerCase().includes(q)));
+
+  const listEl = $('atomList');
+  if (!list.length) {
+    listEl.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#93a1bd;padding:24px 0;font-size:12px;">🔬<br>عنصری یافت نشد</div>';
+    return;
+  }
+  listEl.innerHTML = list.map(a =>
+    `<div class="atom-card" data-sym="${a.symbol}" draggable="true" style="background:${CAT_COLOR[a.category]};position:relative;">
+       <span class="z">${a.atomicNumber}</span>
+       <span class="sym">${a.symbol}</span>
+       <span class="nm">${a.nameFa}</span>
+       <span class="ct">${CAT_NAME[a.category]}</span>
+     </div>`).join('');
+
+  listEl.querySelectorAll('.atom-card').forEach(el => {
+    const atom = ATOMS.find(a => a.symbol === el.dataset.sym);
+    el.ondragstart = e => paletteDragStart(atom, e);
+    el.addEventListener('touchstart', e => paletteTouchStart(atom, e), { passive:false });
+  });
+}
+
+function renderCanvas() {
+  atomGroupMap.length = 0;
+  Object.keys(atomGroupMap).forEach(k => delete atomGroupMap[k]);
+  layerBonds.innerHTML = '';
+  layerAtoms.innerHTML = '';
+  renderBonds();
+  for (const pa of S.placedAtoms) {
+    const g = buildAtomG(pa);
+    atomGroupMap[pa.id] = g;
+    layerAtoms.appendChild(g);
+  }
+}
+
+function renderBonds() {
+  layerBonds.innerHTML = '';
+  for (const bond of S.bonds) {
+    const a1 = S.placedAtoms.find(a => a.id === bond.atom1Id);
+    const a2 = S.placedAtoms.find(a => a.id === bond.atom2Id);
+    if (!a1 || !a2) continue;
+    const dx = a2.x - a1.x, dy = a2.y - a1.y;
+    const len = Math.sqrt(dx*dx + dy*dy);
+    const nx = len ? -dy/len : 0, ny = len ? dx/len : 0;
+    const mx = (a1.x+a2.x)/2, my = (a1.y+a2.y)/2;
+
+    if (bond.type === 'covalent') {
+      const g = document.createElementNS('http://www.w3.org/2000/svg','g');
+      g.innerHTML = `
+        <line x1="${a1.x}" y1="${a1.y}" x2="${a2.x}" y2="${a2.y}" stroke="url(#covGrad)" stroke-width="4" stroke-linecap="round"/>
+        <circle cx="${mx + nx*7}" cy="${my + ny*7}" r="4" fill="#5aa0ff" stroke="#93c5fd" stroke-width="1.5" class="${S.freezeElectrons?'':'electron-glow'}"/>
+        <circle cx="${mx - nx*7}" cy="${my - ny*7}" r="4" fill="#5aa0ff" stroke="#93c5fd" stroke-width="1.5" class="${S.freezeElectrons?'':'electron-glow'}"/>
+        <rect x="${mx-32}" y="${my-26}" width="64" height="16" rx="4" fill="rgba(0,0,0,0.6)"/>
+        <text x="${mx}" y="${my-15}" text-anchor="middle" fill="#2fd2a0" font-size="10" font-weight="bold">کووالانسی</text>
+        <text x="${mx}" y="${my+20}" text-anchor="middle" fill="rgba(90,160,255,0.7)" font-size="8">۲e⁻ مشترک</text>`;
+      layerBonds.appendChild(g);
+    } else {
+      const metalToNon = a1.atom.electronegativity < a2.atom.electronegativity;
+      const adx = metalToNon ? dx/(len||1) : -dx/(len||1);
+      const ady = metalToNon ? dy/(len||1) : -dy/(len||1);
+      const ax = mx + adx*10, ay = my + ady*10;
+      const bx = mx - adx*5 + ady*6, by = my - ady*5 - adx*6;
+      const cx = mx - adx*5 - ady*6, cy = my - ady*5 + adx*6;
+      const g = document.createElementNS('http://www.w3.org/2000/svg','g');
+      g.setAttribute('class','bond-pulse');
+      g.innerHTML = `
+        <line x1="${a1.x}" y1="${a1.y}" x2="${a2.x}" y2="${a2.y}" stroke="url(#ionGrad)" stroke-width="3" stroke-dasharray="8 5" stroke-linecap="round"/>
+        <polygon points="${ax},${ay} ${bx},${by} ${cx},${cy}" fill="#f5b23d" opacity="0.9"/>
+        <rect x="${mx-20}" y="${my-28}" width="40" height="16" rx="4" fill="rgba(0,0,0,0.6)"/>
+        <text x="${mx}" y="${my-17}" text-anchor="middle" fill="#f5b23d" font-size="10" font-weight="bold">یونی</text>
+        <text x="${mx}" y="${my+22}" text-anchor="middle" fill="rgba(245,178,61,0.7)" font-size="9">e⁻ →</text>`;
+      layerBonds.appendChild(g);
+    }
+  }
+}
+
+function buildAtomG(pa) {
+  const a = pa.atom;
+  const r = a.radius;
+  const isSel = S.selectedAtomId === pa.id;
+  const original = totalE(a.electronConfig);
+  const current = totalE(pa.displayElectronConfig);
+  const changed = original !== current;
+  const chargeStr = pa.charge ? (pa.charge > 0 ? (pa.charge>1?pa.charge:'')+'+' : (pa.charge<-1?Math.abs(pa.charge):'')+'−') : null;
+
+  const ns = 'http://www.w3.org/2000/svg';
+  const g = document.createElementNS(ns,'g');
+  g.setAttribute('transform', `translate(${pa.x}, ${pa.y})`);
+  g.style.cursor = 'grab';
+
+  let inner = '';
+
+  // electron shells
+  if (S.showElectrons) {
+    pa.displayElectronConfig.forEach((n, i) => {
+      if (n <= 0) return;
+      const sr = r + 14 + i*14;
+      const anim = S.freezeElectrons ? '' : (i%2===0 ? 'orbit' : 'orbit-rev');
+      let shell = '';
+      shell += `<circle r="${sr}" fill="none" stroke="${changed?'rgba(245,178,61,0.25)':'rgba(255,255,255,0.16)'}" stroke-width="1" stroke-dasharray="4 4"/>`;
+      for (let k=0;k<n;k++) {
+        const ang = 2*Math.PI*k/n;
+        const ex = sr*Math.cos(ang), ey = sr*Math.sin(ang);
+        shell += `<circle cx="${ex}" cy="${ey}" r="3.5" fill="#5aa0ff" stroke="#93c5fd" stroke-width="1"/>`;
+      }
+      inner += `<g class="${anim}">${shell}</g>`;
+    });
+  }
+
+  if (isSel) inner += `<circle r="${r+6}" fill="none" stroke="#4f8cff" stroke-width="2.5" stroke-dasharray="6 3" class="orbit"/>`;
+
+  inner += `
+    <defs>
+      <radialGradient id="grad-${pa.id}" cx="35%" cy="35%">
+        <stop offset="0%" stop-color="white" stop-opacity="0.4"/>
+        <stop offset="50%" stop-color="${a.color}" stop-opacity="0.9"/>
+        <stop offset="100%" stop-color="${a.color}"/>
+      </radialGradient>
+    </defs>
+    <circle r="${r}" fill="url(#grad-${pa.id})" stroke="${isSel?'#4f8cff':changed?'rgba(245,178,61,0.5)':'rgba(255,255,255,0.3)'}" stroke-width="${isSel?2.5:changed?2:1}"/>
+    <circle cx="-3" cy="-3" r="4" fill="rgba(255,255,255,0.25)"/>
+    <circle cx="3" cy="2" r="2.5" fill="rgba(255,255,255,0.15)"/>
+    <text y="${chargeStr?-2:2}" text-anchor="middle" dominant-baseline="middle" fill="#fff" font-weight="bold" font-size="${r*0.65}" style="text-shadow:0 1px 3px rgba(0,0,0,0.8)">${a.symbol}</text>`;
+
+  if (S.showElectrons) {
+    inner += `<text y="${chargeStr?r*0.5:r*0.55}" text-anchor="middle" dominant-baseline="middle" fill="${changed?'rgba(245,178,61,0.8)':'rgba(255,255,255,0.5)'}" font-size="8" font-family="monospace">${current}e⁻</text>`;
+  }
+
+  if (chargeStr) {
+    inner += `
+      <circle cx="${r*0.75}" cy="${-r*0.75}" r="12" fill="${pa.charge>0?'#ef5b5b':'#5aa0ff'}" stroke="#fff" stroke-width="1.5"/>
+      <text x="${r*0.75}" y="${-r*0.75}" text-anchor="middle" dominant-baseline="central" fill="#fff" font-weight="bold" font-size="12">${chargeStr}</text>`;
+  }
+
+  g.innerHTML = inner;
+
+  // hover tooltip
+  g.addEventListener('mouseenter', () => {
+    const t = document.createElementNS(ns,'g');
+    t.setAttribute('class','tip');
+    t.innerHTML = `
+      <rect x="-70" y="${-r-52}" width="140" height="42" rx="8" fill="rgba(0,0,0,0.9)" stroke="rgba(255,255,255,0.2)"/>
+      <text y="${-r-36}" text-anchor="middle" fill="#fff" font-size="11">${a.nameFa} (${a.name})</text>
+      <text y="${-r-20}" text-anchor="middle" fill="${changed?'#f5b23d':'#9ca3af'}" font-size="9" font-family="monospace">e⁻: [${pa.displayElectronConfig.join(',')}]${changed?` ← [${a.electronConfig.join(',')}]`:''}</text>`;
+    g.appendChild(t);
+  });
+  g.addEventListener('mouseleave', () => { const t = g.querySelector('.tip'); if (t) t.remove(); });
+
+  g.addEventListener('mousedown', e => { e.stopPropagation(); canvasAtomDown(pa.id, e); });
+  g.addEventListener('touchstart', e => { e.stopPropagation(); canvasAtomDown(pa.id, e); }, { passive:false });
+  g.addEventListener('click', e => {
+    e.stopPropagation();
+    if (S.suppressNextClick) { S.suppressNextClick = false; return; }
+    handleAtomClick(pa.id);
+  });
+
+  if (isSel) g.style.filter = 'drop-shadow(0 0 12px rgba(79,140,255,0.8))';
+
+  return g;
+}
+
+function renderNotif() {
+  const el = $('notif');
+  if (!S.notif) { el.style.display = 'none'; return; }
+  const n = S.notif;
+  el.style.display = 'block';
+  const kindLabel = n.kind==='covalent' ? 'پیوند کووالانسی' : n.kind==='ionic' ? 'پیوند یونی' : 'پیوند ممکن نیست';
+  const icon = n.kind==='covalent' ? '🔗' : n.kind==='ionic' ? '⚡' : '🚫';
+  el.innerHTML = `
+    <div class="inner ${n.kind}">
+      <span class="big">${icon}</span>
+      <div style="flex:1">
+        <h3>${kindLabel}</h3>
+        <p>${n.a1.nameFa} (${n.a1.symbol}) و ${n.a2.nameFa} (${n.a2.symbol})</p>
+        <p>اختلاف الکترونگاتیوی: ${n.enDiff.toFixed(2)} ${n.kind==='covalent' ? '(&lt; ۱.۷ → کووالانسی)' : n.kind==='ionic' ? '(≥ ۱.۷ → یونی)' : ''}</p>
+        <p class="msg">${n.msg}</p>
+      </div>
+      <button class="close" id="notifClose">✕</button>
+    </div>`;
+  $('notifClose').onclick = () => { S.notif = null; renderNotif(); };
+}
+
+function renderInfo() {
+  const el = $('infoPanel');
+  const sel = S.placedAtoms.find(a => a.id === S.selectedAtomId);
+  if (!sel) { el.style.display = 'none'; return; }
+  el.style.display = 'block';
+  const a = sel.atom;
+  const original = totalE(a.electronConfig);
+  const current = totalE(sel.displayElectronConfig);
+  const diff = current - original;
+  el.innerHTML = `
+    <div class="head">
+      <div class="atom-badge" style="background:${a.color}AA;">${a.symbol}</div>
+      <div><h3>${a.nameFa}</h3><p>${a.name}</p></div>
+    </div>
+    <div class="row"><span>عدد اتمی</span><b>${a.atomicNumber}</b></div>
+    <div class="row"><span>الکترونگاتیوی</span><b>${a.electronegativity}</b></div>
+    <div class="row"><span>آرایش اصلی</span><b>[${a.electronConfig.join(', ')}]</b></div>
+    <div class="row"><span>آرایش فعلی</span><b class="${diff!==0?'warn':''}">[${sel.displayElectronConfig.join(', ')}]</b></div>
+    <div class="row"><span>الکترون‌ها</span><b>${current}${diff!==0?` <span class="${diff>0?'':'warn'}">(${diff>0?'+'+diff:diff})</span>`:''}</b></div>
+    <div class="row"><span>پیوندها</span><b>${sel.currentBonds} / ${a.maxBonds}</b></div>
+    ${sel.charge!==0?`<div class="row"><span>بار الکتریکی</span><b class="${sel.charge>0?'warn':''}">${sel.charge>0?'+'+sel.charge:sel.charge}</b></div>`:''}
+    <div class="actions">
+      <button class="btn danger" id="btnDel">🗑 حذف</button>
+      <button class="btn" id="btnCancel">لغو</button>
+    </div>
+    <div class="hint">💡 روی اتم دیگری کلیک کنید تا پیوند بزنید</div>`;
+  $('btnDel').onclick = () => deleteAtom(sel.id);
+  $('btnCancel').onclick = () => { S.selectedAtomId = null; renderAll(); };
+}
+
+function renderWelcome() {
+  const el = $('welcome');
+  if (S.placedAtoms.length > 0) { el.style.display = 'none'; return; }
+  el.style.display = 'flex';
+  el.innerHTML = `
+    <div class="card">
+      <div class="emoji">🧪</div>
+      <h2>آزمایشگاه پیوند اتمی</h2>
+      <p>عناصر را از پنل سمت راست به داخل صفحه بکشید و رها کنید</p>
+      <p>دو اتم را نزدیک هم بیاورید یا روی آن‌ها کلیک کنید تا پیوند تشکیل شود</p>
+      <div class="tips">
+        <div><b class="cov">🔗 پیوند کووالانسی:</b> اختلاف الکترونگاتیوی &lt; ۱.۷ → الکترون‌ها به اشتراک گذاشته می‌شوند</div>
+        <div><b class="ion">⚡ پیوند یونی:</b> اختلاف الکترونگاتیوی ≥ ۱.۷ → الکترون از فلز به نافلز منتقل می‌شود</div>
+        <div style="color:#93a1bd">Delete: حذف اتم انتخابی &nbsp;|&nbsp; Ctrl+Z: بازگشت</div>
+      </div>
+    </div>`;
+}
+
+/* ---------- Legend (static) ---------- */
+$('legend').innerHTML = `
+  <div><span class="sw" style="background:linear-gradient(90deg,#2fd2a0,#5aa0ff,#2fd2a0)"></span>پیوند کووالانسی (اشتراک e⁻)</div>
+  <div><span class="sw" style="background:linear-gradient(90deg,#ef5b5b,#f5b23d,#4f8cff)"></span>پیوند یونی (انتقال e⁻)</div>
+  <div style="margin-top:6px;color:#5aa0ff"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#5aa0ff"></span>الکترون</div>`;
+
+/* ---------- Sidebar toggle ---------- */
+$('btnOpenSidebar').onclick = () => { S.sidebarOpen = true; renderSidebar(); };
+$('btnCloseSidebar').onclick = () => { S.sidebarOpen = false; renderSidebar(); };
+
+/* ---------- Search ---------- */
+$('search').value = '';
+$('search').addEventListener('input', e => { S.search = e.target.value; renderPalette(); });
+
+/* ---------- Keyboard ---------- */
+window.addEventListener('keydown', e => {
+  if ((e.key === 'Delete' || e.key === 'Backspace') && S.selectedAtomId) { e.preventDefault(); deleteAtom(S.selectedAtomId); }
+  if ((e.key === 'z' || e.key === 'Z') && (e.ctrlKey || e.metaKey)) { e.preventDefault(); undo(); }
+});
+
+/* ---------- Init ---------- */
+resizeViewBox();
+renderAll();
+</script>
+</body>
+</html>
